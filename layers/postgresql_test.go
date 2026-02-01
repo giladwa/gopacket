@@ -237,6 +237,8 @@ func TestPostgreSQLExecute(t *testing.T) {
 	data := makeMessage(PGFrontendExecute, payload)
 
 	pg := &PostgreSQL{}
+	// Execute uses 'E' which is ambiguous - set IsRequest to indicate frontend
+	pg.IsRequest = true
 	err := pg.DecodeFromBytes(data, gopacket.NilDecodeFeedback)
 	if err != nil {
 		t.Fatalf("Failed to decode Execute: %v", err)
@@ -598,6 +600,8 @@ func TestPostgreSQLDescribe(t *testing.T) {
 	data := makeMessage(PGFrontendDescribe, payload)
 
 	pg := &PostgreSQL{}
+	// Describe uses 'D' which is ambiguous - set IsRequest to indicate frontend
+	pg.IsRequest = true
 	err := pg.DecodeFromBytes(data, gopacket.NilDecodeFeedback)
 	if err != nil {
 		t.Fatalf("Failed to decode Describe: %v", err)
@@ -619,6 +623,8 @@ func TestPostgreSQLClose(t *testing.T) {
 	data := makeMessage(PGFrontendClose, payload)
 
 	pg := &PostgreSQL{}
+	// Close uses 'C' which is ambiguous - set IsRequest to indicate frontend
+	pg.IsRequest = true
 	err := pg.DecodeFromBytes(data, gopacket.NilDecodeFeedback)
 	if err != nil {
 		t.Fatalf("Failed to decode Close: %v", err)
@@ -709,8 +715,10 @@ func TestPGMessageTypeString(t *testing.T) {
 		expected string
 	}{
 		{PGMessageType(PGFrontendQuery), "Query"},
-		{PGMessageType(PGBackendDataRow), "DataRow"},
-		{PGMessageType(PGBackendErrorResponse), "ErrorResponse"},
+		// 'D' is ambiguous (Describe frontend, DataRow backend), so String() returns both
+		{PGMessageType(PGBackendDataRow), "Describe/DataRow"},
+		// 'E' is ambiguous (Execute frontend, ErrorResponse backend), so String() returns both
+		{PGMessageType(PGBackendErrorResponse), "Execute/ErrorResponse"},
 		{PGMessageType(PGBackendReadyForQuery), "ReadyForQuery"},
 	}
 

@@ -159,7 +159,7 @@ func (m PGMessageType) String() string {
 	case 'V':
 		return "FunctionCallResponse"
 	default:
-		return fmt.Sprintf("Unknown(0x%02x)", m)
+		return fmt.Sprintf("Unknown(0x%02x)", byte(m))
 	}
 }
 
@@ -195,7 +195,7 @@ func (m PGMessageType) FrontendString() string {
 	case 'f':
 		return "CopyFail"
 	default:
-		return fmt.Sprintf("Frontend(0x%02x)", m)
+		return fmt.Sprintf("Frontend(0x%02x)", byte(m))
 	}
 }
 
@@ -532,6 +532,8 @@ func (p *PostgreSQL) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) er
 	// Shared bytes: C, D, E, H, S (have different meanings for frontend/backend)
 	// Note: This heuristic works for unambiguous cases. For ambiguous messages,
 	// stream-level context would be needed for accurate direction detection.
+	// If IsRequest was set before calling DecodeFromBytes (e.g., by tcpassembly),
+	// we preserve it for ambiguous messages.
 	switch byte(p.MessageType) {
 	case 'B', // Bind (frontend only)
 		'Q', // Query (frontend only)
@@ -542,8 +544,10 @@ func (p *PostgreSQL) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) er
 		p.IsRequest = true
 	case 'C', 'D', 'E', 'H', 'S':
 		// Ambiguous - shared between frontend and backend
-		// Default to false (backend) - stream context needed for accuracy
-		p.IsRequest = false
+		// Preserve IsRequest if already set (e.g., from stream context),
+		// otherwise default to false (backend)
+		// The IsRequest field can be set before calling DecodeFromBytes
+		// to provide direction hint from tcpassembly or similar.
 	default:
 		// All other message types are backend-only
 		p.IsRequest = false
