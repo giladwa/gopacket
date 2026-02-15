@@ -78,6 +78,8 @@ func (a TCPPort) LayerType() gopacket.LayerType {
 		return LayerTypeTLS
 	case 5061: // ips
 		return LayerTypeTLS
+	case 5432: // postgresql
+		return LayerTypePostgreSQL
 	}
 	return gopacket.LayerTypePayload
 }
